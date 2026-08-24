@@ -10,6 +10,8 @@ models without code change and instead through config
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
 import os
 
 import requests
@@ -17,6 +19,8 @@ import requests
 ANTHROPIC_MODEL = "claude-sonnet-5"
 OPENROUTER_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 OPENROUTER_URL = "https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free"
+
+load_dotenv() # for env vars
 
 class OpenRouterBackend:
     def __init__(self, model: str = OPENROUTER_MODEL, session: requests.Session | None = None) -> None:
@@ -31,17 +35,23 @@ class OpenRouterBackend:
     def complete(self, system: str, user: str) -> str:
         response = self._session.post(
             OPENROUTER_URL,
-            headers= {"Authorization": f"Bearer {self._api_key}"},
-            json= {
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "techpulse/0.1 (+https://github.com/HK116/techpulse)",
+            },
+            json={
                 "model": self._model,
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
-                "max_tokens": 200,
+                "max_tokens": 500,
             },
-            timeout=30
+            timeout=30,
         )
+        print("STATUS:", response.status_code)
+        print("BODY:", response.text[:300])
 
         response.raise_for_status()
         data = response.json()
