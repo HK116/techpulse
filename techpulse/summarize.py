@@ -2,14 +2,8 @@
 summarize.py
 ------------
 
-Uses an LLM backedn (Claude or OpenRouter - see llm_backend.py) to turn raw Hacker News
+Uses an LLM backedn (via OpenRouterClient - see llm.py) to turn raw Hacker News
 story into a short summary and a category tag.
-
-Notes:
-- backend is injected, not constructed globally, so tests can substitute a fake with
-  no network calls and no API key.
-- Model strictly returns JSON and parse it defensively, since any prod LLM-calling 
-  code needs to halde malformed output
 """
 
 from __future__ import annotations
@@ -17,10 +11,9 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 from techpulse.fetcher import Story
-from techpulse.llm_backend import build_backend_from_env
+from techpulse.llm import OpenRouterClient
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +44,12 @@ class Enrichment:
 
 
 class StorySummarizer:
-    def __init__(self, backend=None):
-        self._backend = backend or build_backend_from_env()
+    def __init__(self, client: OpenRouterClient | None = None):
+        self._client = client or OpenRouterClient()
 
     def summarize(self, story: Story) -> Enrichment:
         user_prompt = f"Title: {story.title}\nURL: {story.url or "N/A"}"
-        raw_text = self._backend.complete(system=SYSTEM_PROMPT, user=user_prompt)
+        raw_text = self._client.complete(system=SYSTEM_PROMPT, user=user_prompt)
         return self._parse_response(raw_text)
 
     @staticmethod

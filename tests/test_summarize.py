@@ -1,8 +1,8 @@
 """
-Tests for techpulse.summarizer.
+Tests for techpulse.summarize.
 
-No real API key or network call is ever used here — we inject a fake
-backend implementing the same `complete()` interface as the real ones.
+No real API key or network call is ever used — we inject a fake client
+implementing the same `complete()` interface as OpenRouterClient.
 """
 
 from techpulse.fetcher import Story
@@ -20,7 +20,7 @@ def make_story() -> Story:
     )
 
 
-class FakeBackend:
+class FakeClient:
     def __init__(self, response_text: str):
         self._response_text = response_text
         self.last_system = None
@@ -33,8 +33,8 @@ class FakeBackend:
 
 
 def test_summarize_parses_valid_json_response():
-    backend = FakeBackend('{"summary": "A faster transformer training method.", "category": "AI/ML"}')
-    summarizer = StorySummarizer(backend=backend)
+    client = FakeClient('{"summary": "A faster transformer training method.", "category": "AI/ML"}')
+    summarizer = StorySummarizer(client=client)
 
     result = summarizer.summarize(make_story())
 
@@ -44,8 +44,8 @@ def test_summarize_parses_valid_json_response():
 
 
 def test_summarize_strips_markdown_code_fences():
-    backend = FakeBackend('```json\n{"summary": "Test summary", "category": "Programming"}\n```')
-    summarizer = StorySummarizer(backend=backend)
+    client = FakeClient('```json\n{"summary": "Test summary", "category": "Programming"}\n```')
+    summarizer = StorySummarizer(client=client)
 
     result = summarizer.summarize(make_story())
 
@@ -54,8 +54,8 @@ def test_summarize_strips_markdown_code_fences():
 
 
 def test_summarize_falls_back_to_other_for_invalid_category():
-    backend = FakeBackend('{"summary": "Some summary", "category": "NotARealCategory"}')
-    summarizer = StorySummarizer(backend=backend)
+    client = FakeClient('{"summary": "Some summary", "category": "NotARealCategory"}')
+    summarizer = StorySummarizer(client=client)
 
     result = summarizer.summarize(make_story())
 
@@ -63,8 +63,8 @@ def test_summarize_falls_back_to_other_for_invalid_category():
 
 
 def test_summarize_handles_malformed_json_gracefully():
-    backend = FakeBackend("this is not json at all")
-    summarizer = StorySummarizer(backend=backend)
+    client = FakeClient("this is not json at all")
+    summarizer = StorySummarizer(client=client)
 
     result = summarizer.summarize(make_story())
 
@@ -73,11 +73,11 @@ def test_summarize_handles_malformed_json_gracefully():
 
 
 def test_summarize_sends_story_title_and_url_in_prompt():
-    backend = FakeBackend('{"summary": "x", "category": "Other"}')
-    summarizer = StorySummarizer(backend=backend)
+    client = FakeClient('{"summary": "x", "category": "Other"}')
+    summarizer = StorySummarizer(client=client)
 
     summarizer.summarize(make_story())
 
-    assert backend.last_user is not None
-    assert "New transformer architecture" in backend.last_user
-    assert "https://example.com/paper" in backend.last_user
+    assert client.last_user is not None
+    assert "New transformer architecture" in client.last_user
+    assert "https://example.com/paper" in client.last_user
