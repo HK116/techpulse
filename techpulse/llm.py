@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 # DEFAULT_MODEL = "z-ai/glm-5.2:free"
 # DEFAULT_MODEL = "thinkingmachines/inkling:free"
-DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL")
+DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL") or "nvidia/nemotron-3-ultra-550b-a55b:free"
 DEFAULT_MAX_TOKENS = 500
 DEFAULT_MAX_RETRIES = 3
 
@@ -34,7 +34,7 @@ class OpenRouterClient:
             raise RuntimeError("OPENROUTER_API_KEY is not set. Add it to your .env file.")
 
         self._client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key)
-        self._model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)
+        self._model: str = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)
         self._max_retries = max_retries
 
     def complete(self, system: str, user: str) -> str:
@@ -49,14 +49,19 @@ class OpenRouterClient:
         for attempt in range(self._max_retries):
             try:
                 response = self._client.chat.completions.create(
-                    model=self._model,
+                    model = self._model,
                     max_tokens=DEFAULT_MAX_TOKENS,
                     messages=[
                         {"role": "system", "content": system},
                         {"role": "user", "content": user},
                     ],
                 )
-                return response.choices[0].message.content
+                if not response.choices:
+                    raise ValueError(f"Empty response from model (no choices): {response!r}")
+                content = response.choices[0].message.content
+                if content is None:
+                    raise ValueError(f"Model returned no text content: {response!r}")
+                return content
             except Exception as exc:  # noqa: BLE001 - retry on any transient failure
                 last_error = exc
                 wait_seconds = 2**attempt
