@@ -8,7 +8,7 @@ services:
       - OPENROUTER_MODEL=${OPENROUTER_MODEL}
       - TECHPULSE_DB_PATH=/data/techpulse.db
     volumes:
-      -techpulse_data:/data
+      - techpulse_data:/data
 
 volumes:
   techpulse_data:
