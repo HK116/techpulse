@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
 
 import requests
 
@@ -31,14 +30,14 @@ class Story:
 
     id: int
     title: str
-    url: Optional[str]
+    url: str | None
     score: int
     by: str
     time: int
     descendants: int = 0  # comment count
 
     @classmethod
-    def from_api_payload(cls, payload: dict) -> "Story":
+    def from_api_payload(cls, payload: dict) -> Story:
         return cls(
             id=payload["id"],
             title=payload.get("title", "(no title)"),
@@ -53,18 +52,18 @@ class Story:
 class HackerNewsClient:
     """Thin wrapper around the Hacker News API."""
 
-    def __init__(self, session: Optional[requests.Session] = None, timeout: int = DEFAULT_TIMEOUT_SECONDS):
+    def __init__(self, session: requests.Session | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS):
         self._session = session or requests.Session()
         self._timeout = timeout
 
-    def get_top_story_ids(self, limit: int = 30) -> List[int]:
+    def get_top_story_ids(self, limit: int = 30) -> list[int]:
         """Return up to `limit` top story IDs, ranked by HN's own ordering."""
         response = self._session.get(TOP_STORIES_ENDPOINT, timeout=self._timeout)
         response.raise_for_status()
         story_ids = response.json()
         return story_ids[:limit]
 
-    def get_story(self, story_id: int) -> Optional[Story]:
+    def get_story(self, story_id: int) -> Story | None:
         """Fetch a single story by ID. Return None if the item is missing or deleted."""
         url = ITEM_ENDPOINT_TEMPLATE.format(item_id = story_id)
         response = self._session.get(url, timeout=self._timeout)
@@ -81,10 +80,10 @@ class HackerNewsClient:
 
         return Story.from_api_payload(payload)
 
-    def get_top_stories(self, limit: int = 30) -> List[Story]:
+    def get_top_stories(self, limit: int = 30) -> list[Story]:
         """Fetch and return upto `limit` fully-populated top stories."""
         story_ids = self.get_top_story_ids(limit=limit)
-        stories: List[Story] = []
+        stories: list[Story] = []
         for story_id in story_ids:
             story = self.get_story(story_id)
             if story is not None:

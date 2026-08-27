@@ -49,7 +49,7 @@ def run_pipeline(
                 )
             )
             processed += 1
-        except Exception: # noqa: BLE001 - one bad story shouldn't kill the run
+        except Exception:
             logger.exception("Failed to process story id=%s, skipping.", story.id)
 
     logger.info("Pipeline complete. Processed %d/%d stories", processed, len(stories))

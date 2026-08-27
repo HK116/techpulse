@@ -11,10 +11,10 @@ zero extra infrastructure, while still modeling a real schema to extend to Postg
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Iterator, List, Optional
+from datetime import UTC, datetime
 
 from techpulse.fetcher import Story
 
@@ -38,9 +38,9 @@ class EnrichedStory:
     """A Story plus the fileds the LLM adds on top."""
 
     story: Story
-    summary: Optional[str] = None
-    category: Optional[str] = None
-    fetched_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    summary: str | None = None
+    category: str | None = None
+    fetched_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 
@@ -71,16 +71,16 @@ class StoryRepository:
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO stories (id, title, url, score, by, time, descendants, summary, category, fetched_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    title=excluded.title,
-                    url=excluded.url,
-                    score=excluded.score,
-                    descendants=excluded.descendants,
-                    summary=excluded.summary,
-                    category=excluded.category,
-                    fetched_at=excluded.fetched_at
+            INSERT INTO stories (id, title, url, score, by, time, descendants, summary, category, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title=excluded.title,
+                url=excluded.url,
+                score=excluded.score,
+                descendants=excluded.descendants,
+                summary=excluded.summary,
+                category=excluded.category,
+                fetched_at=excluded.fetched_at
                 """,
                 (
                     s.id,
@@ -96,21 +96,21 @@ class StoryRepository:
                 ),
             )
 
-    def bulk_upsert(self, enriched_stories: List[EnrichedStory]) -> None:
+    def bulk_upsert(self, enriched_stories: list[EnrichedStory]) -> None:
         for item in enriched_stories:
             self.upsert(item)
 
-    def get_by_id(self, story_id: int) -> Optional[sqlite3.Row]:
+    def get_by_id(self, story_id: int) -> sqlite3.Row | None:
         with self._connect() as conn:
             cursor = conn.execute("SELECT * FROM stories WHERE id = ?", (story_id,))
             return cursor.fetchone()
 
     def list_stories(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         min_score: int = 0,
         limit: int = 50,
-    ) -> List[sqlite3.Row]:
+    ) -> list[sqlite3.Row]:
         query = "SELECT * FROM stories WHERE score >= ?"
         params: list = [min_score]
 

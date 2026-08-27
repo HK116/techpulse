@@ -6,8 +6,6 @@ Everything is mocker here. runnable offline / CLI
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from techpulse.fetcher import HackerNewsClient, Story
 
 SAMPLE_STORY_PAYLOAD = {
@@ -69,7 +67,7 @@ def test_get_story_returns_none_for_deleted_item():
     client = HackerNewsClient(session=session)
     result = client.get_story(5)
 
-    assert result == None
+    assert result is None
 
 
 def test_get_story_returns_none_for_non_story_type():
@@ -79,7 +77,7 @@ def test_get_story_returns_none_for_non_story_type():
     client = HackerNewsClient(session=session)
     result = client.get_story(5)
     
-    assert result == None
+    assert result is None
 
 
 def test_get_story_parses_valid_story():

@@ -16,7 +16,6 @@ endpoints:
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
@@ -39,11 +38,11 @@ def get_repository() -> StoryRepository:
 class StoryResponse(BaseModel):
     id: int
     title: str
-    url: Optional[str]
+    url: str | None
     score: int
     by: str
-    summary: Optional[str]
-    category: Optional[str]
+    summary: str | None
+    category: str | None
     fetched_at: str
 
 
@@ -58,7 +57,7 @@ def health_check() -> dict:
 
 @app.get("/stories", response_model=list[StoryResponse])
 def list_stories(
-    category: Optional[str] = Query(default=None, description="Filter by category, e.g. 'AI/ML'"),
+    category: str | None = Query(default=None, description="Filter by category, e.g. 'AI/ML'"),
     min_score: int = Query(default=0, ge=0, description="Minimum HN score"),
     limit: int = Query(default=50, ge=1, le=200),
     repo: StoryRepository = Depends(get_repository),
