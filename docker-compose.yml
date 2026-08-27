@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL}
+      - TECHPULSE_DB_PATH=/data/techpulse.db
+    volumes:
+      -techpulse_data:/data
+
+volumes:
+  techpulse_data:
