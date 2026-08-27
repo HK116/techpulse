@@ -1,6 +1,8 @@
 markdown
 # TechPulse
 
+![CI](https://github.com/HK116/techpulse/actions/workflows/ci.yml/badge.svg)
+
 A small end-to-end data pipeline that fetches trending Hacker News stories,
 uses an LLM (via OpenRouter) to summarize and categorize each one, stores
 the results in SQLite, and serves them through a FastAPI service.
@@ -45,19 +47,24 @@ whole pipeline testable end-to-end without any network calls or a real API key.
 - **python-dotenv** for local config
 
 ## Project structure
-
+```bash
 techpulse/
 ├── techpulse/
-│ ├── fetcher.py # Hacker News API client
-│ ├── llm.py # OpenRouter client (model swappable via env var, retry/backoff)
-│ ├── summarize.py # Prompting + defensive JSON parsing on top of llm.py
-│ ├── storage.py # SQLite persistence layer
-│ ├── pipeline.py # Orchestrates fetch -> summarize -> store
-│ └── api.py # FastAPI service
-├── tests/ # Fully mocked, no network/API key needed
+│   ├── fetcher.py      # Hacker News API client
+│   ├── llm.py           # OpenRouter client (model swappable via env var, retry/backoff)
+│   ├── summarize.py     # Prompting + defensive JSON parsing on top of llm.py
+│   ├── storage.py        # SQLite persistence layer
+│   ├── pipeline.py       # Orchestrates fetch -> summarize -> store
+│   ├── api.py              # FastAPI service
+│   └── cli.py                # Command-line entrypoint
+├── tests/                      # Fully mocked, no network/API key needed
+├── .github/workflows/ci.yml    # Lint + test on every push
+├── Dockerfile
+├── docker-compose.yml
+├── pyproject.toml              # ruff + pytest config
 ├── .env.example
 └── requirements.txt
-
+```
 
 ## Setup
 
@@ -76,6 +83,10 @@ Get a free OpenRouter API key at [openrouter.ai/keys](https://openrouter.ai/keys
 credit card required. Several models are available at no cost under `:free` model IDs.
 
 ## Usage
+
+```bash
+python -m techpulse.cli --limit 20 --db techpulse.db
+```
 
 ### Run the pipeline directly
 
@@ -106,10 +117,23 @@ curl "http://localhost:8000/stories?category=AI/ML&min_score=50"
 curl "http://localhost:8000/stories/12345"
 ```
 
+### Run with Docker
+
+```bash
+docker compose up --build
+# API available at http://localhost:8000
+```
+
 ## Running the tests
 
 ```bash
 pytest -v
+```
+
+Lint with:
+
+```bash
+ruff check techpulse tests
 ```
 
 All tests run fully offline — no OpenRouter API key or network access is required,
@@ -136,6 +160,9 @@ since every external dependency is mocked or fake-injected via dependency inject
   of creating duplicates.
 - **One bad story shouldn't kill the run.** `pipeline.py` catches per-story exceptions
   and continues, logging failures rather than crashing the whole batch.
+- **CI runs the same checks you run locally.** GitHub Actions runs `ruff check` and
+  `pytest` on every push, using no real API key — every external dependency is mocked,
+  so CI never makes a network call or costs money to run.
 
 ## Known limitations / caveats
 
@@ -152,8 +179,6 @@ since every external dependency is mocked or fake-injected via dependency inject
 
 ## Possible next steps
 
-- Add a CLI entrypoint and containerize with Docker
-- Add CI (lint + test on every push)
 - Swap SQLite for Postgres for concurrent/production use
 - Add scheduled runs (cron / GitHub Actions scheduled workflow)
 - Cache LLM responses by story ID to avoid re-summarizing on re-runs
